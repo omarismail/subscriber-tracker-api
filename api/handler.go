@@ -18,8 +18,8 @@ var (
 	ErrRquestTypeNotSupported = errors.New("Error: HTTP Request type not supported")
 )
 
-type missingDB struct {
-	errorMessage string `json:"error_message,omitempty"`
+type MissingDB struct {
+	ErrorMessage string `json:"error_message,omitempty"`
 }
 
 type handler struct {
@@ -43,7 +43,7 @@ func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 	case "GET":
 
 		if h.checkDBConnection() != nil {
-			return nil, http.StatusNotFound, errors.New("Database appears to be missing.")
+			return MissingDB{ErrorMessage: "Database appears to be missing. These changes will not be saved."}, http.StatusOK, nil
 		}
 
 		v, err := h.Database.ListSubscribers()
@@ -55,7 +55,7 @@ func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 	case "POST":
 
 		if h.checkDBConnection() != nil {
-			return nil, http.StatusNotFound, errors.New("Database appears to be missing.")
+			return MissingDB{ErrorMessage: "Database appears to be missing. These changes will not be saved."}, http.StatusOK, nil
 		}
 
 		var sub *model.Subscriber
@@ -95,7 +95,7 @@ func wrapper(f func(io.Writer, *http.Request) (interface{}, int, error)) http.Ha
 }
 
 func (h *handler) checkDBConnection() error {
-	if h.Database != nil {
+	if h.Database != nil && h.Database.IsUp() == nil {
 		return nil
 	}
 

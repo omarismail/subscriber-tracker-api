@@ -86,3 +86,7 @@ func (p *PostgreSQL) AddSubscriber(newSub *model.Subscriber) (*model.Subscriber,
 func (p *PostgreSQL) Close() error {
 	return p.db.Close()
 }
+
+func (p *PostgreSQL) IsUp() error {
+	return p.db.Ping()
+}
