@@ -1,13 +1,16 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"strings"
+	"os"
 
+	"github.com/jonfriesen/subscriber-tracker-api/model"
 	"github.com/jonfriesen/subscriber-tracker-api/storage/postgresql"
+	"github.com/rs/cors"
 )
 
 var (
@@ -15,32 +18,33 @@ var (
 	ErrRquestTypeNotSupported = errors.New("Error: HTTP Request type not supported")
 )
 
-type Handler struct {
+type missingDB struct {
+	errorMessage string `json:"error_message,omitempty"`
+}
+
+type handler struct {
 	Database *postgresql.PostgreSQL
 }
 
 // New creates a new http handler
-func New(db *postgresql.PostgreSQL) http.Handler {
+func New() http.Handler {
 	mux := http.NewServeMux()
 
-	h := Handler{
-		Database: db,
-	}
+	h := handler{}
 
-	mux.Handle("/list/", wrapper(h.list))
+	mux.Handle("/subscribers/", wrapper(h.list))
 
-	return mux
+	corsHandler := cors.Default().Handler(mux)
+	return corsHandler
 }
 
-func (h *Handler) SetDatabase(db *postgresql.PostgreSQL) {
-	h.Database = db
-}
-
-func (h *Handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
+func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 	switch r.Method {
 	case "GET":
-		rKey := strings.TrimPrefix(r.URL.Path, "/v1/get/")
-		log.Printf("Looking up %v", rKey)
+
+		if h.checkDBConnection() != nil {
+			return nil, http.StatusNotFound, errors.New("Database appears to be missing.")
+		}
 
 		v, err := h.Database.ListSubscribers()
 		if err != nil {
@@ -48,6 +52,25 @@ func (h *Handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 		}
 
 		return v, http.StatusOK, nil
+	case "POST":
+
+		if h.checkDBConnection() != nil {
+			return nil, http.StatusNotFound, errors.New("Database appears to be missing.")
+		}
+
+		var sub *model.Subscriber
+		if err := json.NewDecoder(r.Body).Decode(&sub); err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+
+		fmt.Printf("%+v", sub)
+
+		v, err := h.Database.AddSubscriber(sub)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+
+		return v, http.StatusCreated, nil
 	}
 
 	return nil, http.StatusBadRequest, ErrRquestTypeNotSupported
@@ -64,9 +87,29 @@ func wrapper(f func(io.Writer, *http.Request) (interface{}, int, error)) http.Ha
 		w.Header().Set("Content-Type", " application/json")
 		w.WriteHeader(status)
 
-		_, err = io.WriteString(w, data.(string))
-		if err != nil {
-			panic(err)
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
+}
+
+func (h *handler) checkDBConnection() error {
+	if h.Database != nil {
+		return nil
+	}
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		return errors.New("no database URL set")
+	}
+
+	adb, err := postgresql.NewConnection(dbURL)
+	if err != nil {
+		return err
+	}
+
+	h.Database = adb
+
+	return nil
 }
