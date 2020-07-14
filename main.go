@@ -70,23 +70,5 @@ func main() {
 		}
 	}()
 
-	// go func() {
-	// 	var adb *postgresql.PostgreSQL
-	// 	err := errors.New("database is not ready yet")
-	// 	for err != nil {
-	// 		log.Println("Checking if database is ready yet.")
-	// 		adb, err = postgresql.NewConnection(devPGConnStr)
-	// 		if err != nil {
-	// 			log.Println("error")
-	// 			time.Sleep(5 * time.Second)
-	// 			err = err
-	// 		} else {
-	// 			log.Println("connected to db")
-	// 			db = adb
-	// 			// defer db.Close()
-	// 		}
-	// 	}
-	// }()
-
 	wg.Wait()
 }
