@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 
 	"github.com/jonfriesen/subscriber-tracker-api/model"
@@ -39,6 +41,12 @@ func New() http.Handler {
 }
 
 func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
+	reqDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		log.Println("Error dumping http request", err.Error())
+	}
+	log.Println(string(reqDump))
+
 	switch r.Method {
 	case "GET":
 

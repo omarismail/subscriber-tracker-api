@@ -42,7 +42,7 @@ func NewConnection(databaseURL string) (*PostgreSQL, error) {
 
 // ListSubscribers subs
 func (p *PostgreSQL) ListSubscribers() ([]*model.Subscriber, error) {
-	rows, err := p.db.Query("SELECT name, email FROM subscribers;")
+	rows, err := p.db.Query("SELECT name, email FROM subscribers ORDER BY id DESC LIMIT 50;")
 	if err != nil {
 		return nil, err
 	}
