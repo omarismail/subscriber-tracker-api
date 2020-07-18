@@ -66,6 +66,7 @@ func (h *Handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 
 		v, err := Database.ListSubscribers()
 		if err != nil {
+			log.Println("Database Error (LIST):", err.Error())
 			return nil, http.StatusNotFound, ErrNotFound
 		}
 
@@ -85,6 +86,7 @@ func (h *Handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 
 		v, err := Database.AddSubscriber(sub)
 		if err != nil {
+			log.Println("Database Error (ADD):", err.Error())
 			return nil, http.StatusInternalServerError, err
 		}
 
