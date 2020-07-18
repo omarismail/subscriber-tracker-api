@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"database/sql"
+	"log"
 
 	"github.com/jonfriesen/subscriber-tracker-api/model"
 
@@ -56,6 +57,7 @@ func (p *PostgreSQL) ListSubscribers() ([]*model.Subscriber, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Println(">>> Received User:", name)
 		subs = append(subs, &model.Subscriber{
 			Name:  name,
 			Email: email,
