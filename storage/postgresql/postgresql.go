@@ -32,7 +32,7 @@ func NewConnection(databaseURL string) (*PostgreSQL, error) {
 	  );`
 	_, err = db.Exec(sqlStatement)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return &PostgreSQL{

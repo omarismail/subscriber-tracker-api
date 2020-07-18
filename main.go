@@ -8,6 +8,9 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
+
+	"github.com/jonfriesen/subscriber-tracker-api/storage/postgresql"
 
 	"github.com/jonfriesen/subscriber-tracker-api/api"
 )
@@ -25,9 +28,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		if err := os.Setenv("DATABASE_URL", "postgresql://postgres:mysecretpassword@localhost:5432/postgres?sslmode=disable"); err != nil {
-			panic("failed to set db connection string")
-		}
+		dbURL = "postgresql://postgres:mysecretpassword@localhost:5432/postgres?sslmode=disable"
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +38,7 @@ func main() {
 	handler := api.New()
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", host, port),
-		Handler: handler,
+		Handler: handler.Get(),
 	}
 
 	wg := new(sync.WaitGroup)
@@ -57,6 +58,7 @@ func main() {
 			log.Println("Server stopped")
 		}
 		wg.Done()
+		wg.Done()
 	}()
 
 	go func() {
@@ -67,6 +69,23 @@ func main() {
 		} else {
 			log.Println("Server closed")
 			wg.Done()
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		log.Println("Trying to get DB Connection")
+		for {
+			adb, err := postgresql.NewConnection(dbURL)
+			if err != nil {
+				log.Println(">> No DB - Sleeping for 1 second")
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			log.Println(">>> Found Database!")
+			api.Database = adb
+			wg.Done()
+			break
 		}
 	}()
 

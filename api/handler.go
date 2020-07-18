@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"os"
 
 	"github.com/jonfriesen/subscriber-tracker-api/model"
 	"github.com/jonfriesen/subscriber-tracker-api/storage/postgresql"
@@ -20,27 +19,38 @@ var (
 	ErrRquestTypeNotSupported = errors.New("Error: HTTP Request type not supported")
 )
 
+// Database is a dirty global variable for the DB conn pool.
+var Database *postgresql.PostgreSQL
+
+// MissingDB is a premade struct with a known format.
 type MissingDB struct {
 	ErrorMessage string `json:"error_message,omitempty"`
 }
 
-type handler struct {
-	Database *postgresql.PostgreSQL
+// Handler handles http requests
+type Handler struct {
+	handler http.Handler
 }
 
 // New creates a new http handler
-func New() http.Handler {
+func New() Handler {
 	mux := http.NewServeMux()
 
-	h := handler{}
+	h := Handler{}
 
 	mux.Handle("/subscribers/", wrapper(h.list))
-
 	corsHandler := cors.Default().Handler(mux)
-	return corsHandler
+	h.handler = corsHandler
+
+	return h
 }
 
-func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
+// Get returns the http.Handler
+func (h *Handler) Get() http.Handler {
+	return h.handler
+}
+
+func (h *Handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 	reqDump, err := httputil.DumpRequest(r, true)
 	if err != nil {
 		log.Println("Error dumping http request", err.Error())
@@ -50,11 +60,11 @@ func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 	switch r.Method {
 	case "GET":
 
-		if h.checkDBConnection() != nil {
+		if Database == nil {
 			return MissingDB{ErrorMessage: "Database appears to be missing. These changes will not be saved."}, http.StatusOK, nil
 		}
 
-		v, err := h.Database.ListSubscribers()
+		v, err := Database.ListSubscribers()
 		if err != nil {
 			return nil, http.StatusNotFound, ErrNotFound
 		}
@@ -62,7 +72,7 @@ func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 		return v, http.StatusOK, nil
 	case "POST":
 
-		if h.checkDBConnection() != nil {
+		if Database == nil {
 			return MissingDB{ErrorMessage: "Database appears to be missing. These changes will not be saved."}, http.StatusOK, nil
 		}
 
@@ -73,7 +83,7 @@ func (h *handler) list(w io.Writer, r *http.Request) (interface{}, int, error) {
 
 		fmt.Printf("%+v", sub)
 
-		v, err := h.Database.AddSubscriber(sub)
+		v, err := Database.AddSubscriber(sub)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
@@ -100,24 +110,4 @@ func wrapper(f func(io.Writer, *http.Request) (interface{}, int, error)) http.Ha
 			return
 		}
 	}
-}
-
-func (h *handler) checkDBConnection() error {
-	if h.Database != nil && h.Database.IsUp() == nil {
-		return nil
-	}
-
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		return errors.New("no database URL set")
-	}
-
-	adb, err := postgresql.NewConnection(dbURL)
-	if err != nil {
-		return err
-	}
-
-	h.Database = adb
-
-	return nil
 }
