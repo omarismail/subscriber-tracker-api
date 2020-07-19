@@ -31,10 +31,6 @@ func main() {
 		dbURL = "postgresql://postgres:mysecretpassword@localhost:5432/postgres?sslmode=disable"
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Welcome to my website!")
-	})
-
 	handler := api.New()
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", host, port),
