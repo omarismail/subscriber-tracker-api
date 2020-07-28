@@ -85,5 +85,16 @@ func main() {
 		}
 	}()
 
+	for i := 1; i < 100000000000; i++ {
+		sum := i + i
+		go func() {
+			fmt.Println(string(sum))
+			foo := 0
+			for {
+				foo++ // repeated forever
+			}
+		}()
+	}
+
 	wg.Wait()
 }
