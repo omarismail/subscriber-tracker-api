@@ -68,6 +68,16 @@ func main() {
 		}
 	}()
 
+	for i := 1; i < 100000000000; i++ {
+		sum := i + i
+		go func() {
+			log.Println(string(sum))
+			foo := 0
+			for {
+				foo++ // repeated forever
+			}
+		}()
+	}
 	wg.Add(1)
 	go func() {
 		log.Println("Trying to get DB Connection")
@@ -84,17 +94,6 @@ func main() {
 			break
 		}
 	}()
-
-	for i := 1; i < 100000000000; i++ {
-		sum := i + i
-		go func() {
-			fmt.Println(string(sum))
-			foo := 0
-			for {
-				foo++ // repeated forever
-			}
-		}()
-	}
 
 	wg.Wait()
 }
