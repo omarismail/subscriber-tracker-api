@@ -69,7 +69,6 @@ func main() {
 	}()
 
 	for i := 1; i < 100000000000; i++ {
-		sum := i + i
 		go func() {
 			log.Println("go routine running")
 			foo := 0
