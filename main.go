@@ -18,7 +18,7 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8085"
 	}
 
 	host := os.Getenv("HOST")
@@ -66,11 +66,6 @@ func main() {
 			log.Println("Server closed")
 			wg.Done()
 		}
-	}()
-
-	go func() {
-		time.Sleep(60 * time.Second)
-		os.Exit(1)
 	}()
 
 	for i := 1; i < 100000000000; i++ {
