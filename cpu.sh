@@ -6,6 +6,7 @@ fulload() {
 
 while true
 do
+  echo "hello world"
   fulload
 done
 
