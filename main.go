@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+	os.Exit(1)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
